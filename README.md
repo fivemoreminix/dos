@@ -1,4 +1,4 @@
-# urDOS
+# dos
 
 ## Version 2 design
  * Every widget can draw itself and its children
