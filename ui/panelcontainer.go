@@ -1,6 +1,8 @@
 package ui
 
-import "github.com/gdamore/tcell/v2"
+import (
+	"github.com/gdamore/tcell/v2"
+)
 
 type SplitKind uint8
 

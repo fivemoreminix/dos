@@ -1,6 +1,8 @@
 package ui
 
-import "github.com/gdamore/tcell/v2"
+import (
+	"github.com/gdamore/tcell/v2"
+)
 
 // A PanelKind describes how to interpret the fields of a Panel.
 type PanelKind uint8

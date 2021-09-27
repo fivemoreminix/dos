@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/urDOS.iml" filepath="$PROJECT_DIR$/.idea/urDOS.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../dos/.idea/dos.iml" filepath="$PROJECT_DIR$/../dos/.idea/dos.iml" />
     </modules>
   </component>
 </project>

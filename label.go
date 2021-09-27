@@ -1,25 +1,35 @@
-package ui
+package dos
 
-// Align defines the text alignment of a label.
-type Align uint8
-
-const (
-	// AlignLeft is the normal text alignment where text is aligned to the left
-	// of its bounding box.
-	AlignLeft Align = iota
-	// AlignRight causes text to be aligned to the right of its bounding box.
-	AlignRight
-	// AlignJustify causes text to be left-aligned, but also spaced so that it
-	// fits the entire box where it is being rendered.
-	AlignJustify
+import (
+	"github.com/gdamore/tcell/v2"
+	"github.com/mattn/go-runewidth"
 )
 
-// A Label is a component for rendering text. Text can be rendered easily
-// without a Label, but this component forces the text to fit within its
-// bounding box and allows for left-align, right-align, and justify.
 type Label struct {
-	Text      string
-	Alignment Align
+	Text  string
+	Style tcell.Style
+}
 
-	baseComponent
+func (l Label) HandleClick(_ *tcell.EventMouse) bool {
+	return false
+}
+
+func (l Label) HandleKey(_ *tcell.EventKey) bool {
+	return false
+}
+
+func (l Label) SetFocused(b bool) {}
+
+func (l Label) DisplaySizeInBounds(boundsW, boundsH int) (w, h int) {
+	// TODO: account for text wrapping
+	return runewidth.StringWidth(l.Text), 1
+}
+
+func (l Label) Draw(rect Rect, s tcell.Screen) {
+	if len(l.Text) == 1 {
+		// TODO: it is a bug if the label overflows the rect
+		s.SetContent(rect.X, rect.Y, rune(l.Text[0]), nil, l.Style)
+	} else if len(l.Text) > 1 {
+		s.SetContent(rect.X, rect.Y, rune(l.Text[0]), []rune(l.Text[1:]), l.Style)
+	}
 }

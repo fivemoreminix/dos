@@ -1,4 +1,4 @@
-module github.com/fivemoreminix/urDOS
+module github.com/fivemoreminix/dos
 
 go 1.17
 
