@@ -10,15 +10,15 @@ type Label struct {
 	Style tcell.Style
 }
 
-func (l Label) HandleClick(_ *tcell.EventMouse) bool {
+func (l Label) HandleClick(_ Rect, _ *tcell.EventMouse) bool {
 	return false
 }
 
-func (l Label) HandleKey(_ *tcell.EventKey) bool {
+func (l Label) HandleKey(_ Rect, _ *tcell.EventKey) bool {
 	return false
 }
 
-func (l Label) SetFocused(b bool) {}
+func (l Label) SetFocused(_ bool) {}
 
 func (l Label) DisplaySizeInBounds(boundsW, boundsH int) (w, h int) {
 	// TODO: account for text wrapping
