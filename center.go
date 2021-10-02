@@ -9,22 +9,22 @@ type Center struct {
 }
 
 func (c *Center) GetChildRect(currentRect Rect) Rect {
-	childWidth, childHeight := c.Child.DisplaySizeInBounds(currentRect.W, currentRect.H)
+	childWidth, childHeight := c.Child.DisplaySize(currentRect.W, currentRect.H)
 	x, y := currentRect.W/2-childWidth/2, currentRect.H/2-childHeight/2
 	return Rect{x, y, childWidth, childHeight}
 }
 
-func (c *Center) HandleClick(currentRect Rect, ev *tcell.EventMouse) bool {
+func (c *Center) HandleMouse(currentRect Rect, ev *tcell.EventMouse) bool {
 	if c.Child != nil {
-		return c.Child.HandleClick(c.GetChildRect(currentRect), ev)
+		return c.Child.HandleMouse(c.GetChildRect(currentRect), ev)
 	} else {
 		return false
 	}
 }
 
-func (c *Center) HandleKey(currentRect Rect, ev *tcell.EventKey) bool {
+func (c *Center) HandleKey(ev *tcell.EventKey) bool {
 	if c.Child != nil {
-		return c.Child.HandleKey(c.GetChildRect(currentRect), ev)
+		return c.Child.HandleKey(ev)
 	} else {
 		return false
 	}
@@ -36,7 +36,7 @@ func (c *Center) SetFocused(b bool) {
 	}
 }
 
-func (c *Center) DisplaySizeInBounds(boundsW, boundsH int) (w, h int) {
+func (c *Center) DisplaySize(boundsW, boundsH int) (w, h int) {
 	return boundsW, boundsH
 }
 

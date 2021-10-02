@@ -5,31 +5,40 @@ import (
 	"github.com/mattn/go-runewidth"
 )
 
+type Alignment uint8
+
+const (
+	AlignLeft Alignment = iota
+	AlignRight
+	AlignCenter
+	AlignJustify
+)
+
 type Label struct {
-	Text  string
-	Style tcell.Style
+	Text    string
+	Align   Alignment
+	WrapLen int // Cause the text to wrap after a specified number of terminal cells
+	Style   tcell.Style
 }
 
-func (l Label) HandleClick(_ Rect, _ *tcell.EventMouse) bool {
+func (l Label) HandleMouse(_ Rect, _ *tcell.EventMouse) bool {
 	return false
 }
 
-func (l Label) HandleKey(_ Rect, _ *tcell.EventKey) bool {
+func (l Label) HandleKey(_ *tcell.EventKey) bool {
 	return false
 }
 
 func (l Label) SetFocused(_ bool) {}
 
-func (l Label) DisplaySizeInBounds(boundsW, boundsH int) (w, h int) {
+func (l Label) DisplaySize(boundsW, boundsH int) (w, h int) {
 	// TODO: account for text wrapping
 	return runewidth.StringWidth(l.Text), 1
 }
 
 func (l Label) Draw(rect Rect, s tcell.Screen) {
-	if len(l.Text) == 1 {
-		// TODO: it is a bug if the label overflows the rect
-		s.SetContent(rect.X, rect.Y, rune(l.Text[0]), nil, l.Style)
-	} else if len(l.Text) > 1 {
-		s.SetContent(rect.X, rect.Y, rune(l.Text[0]), []rune(l.Text[1:]), l.Style)
+	// TODO: handle overflowing at the edge of rect, overflowing at WrapLen, and text alignment
+	for i, r := range l.Text {
+		s.SetContent(rect.X+i, rect.Y, r, nil, l.Style)
 	}
 }

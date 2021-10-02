@@ -11,6 +11,8 @@ type App struct {
 }
 
 func (app *App) Run(s tcell.Screen) {
+	s.EnableMouse()
+	s.EnablePaste()
 	app.MainWidget.SetFocused(true)
 	if app.CustomEventLoop != nil {
 		app.CustomEventLoop(app, s)
@@ -23,7 +25,11 @@ func DefaultEventLoop(app *App, s tcell.Screen) {
 	w, h := s.Size()
 	for {
 		s.Clear()
-		app.MainWidget.Draw(Rect{0, 0, w, h}, s)
+
+		rect := Rect{0, 0, w, h}
+		app.MainWidget.Draw(rect, s)
+
+		s.Show() // Renders all changed cells
 
 		switch ev := s.PollEvent().(type) {
 		case *tcell.EventResize:
@@ -34,6 +40,8 @@ func DefaultEventLoop(app *App, s tcell.Screen) {
 			s.Sync() // Redraw the entire screen
 		case *tcell.EventKey:
 			_ = app.MainWidget.HandleKey(ev)
+		case *tcell.EventMouse:
+			_ = app.MainWidget.HandleMouse(rect, ev)
 		default:
 			break
 		}
