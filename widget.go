@@ -30,7 +30,7 @@ type Widget interface {
 	// user. The value can be kept in the Widget to differ its appearance during
 	// Draw. The Widget will call SetFocused(b) on all of its children, also.
 	SetFocused(b bool)
-	// DisplaySizeInBounds returns the expected size of the Widget when it will
+	// DisplaySize returns the expected size of the Widget when it will
 	// be drawn. This is primarily used for containers like Center that require
 	// the Widget's size when determining how to center it.
 	DisplaySize(boundsW, boundsH int) (w, h int)
