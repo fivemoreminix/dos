@@ -38,7 +38,5 @@ func (l Label) DisplaySize(boundsW, boundsH int) (w, h int) {
 
 func (l Label) Draw(rect Rect, s tcell.Screen) {
 	// TODO: handle overflowing at the edge of rect, overflowing at WrapLen, and text alignment
-	for i, r := range l.Text {
-		s.SetContent(rect.X+i, rect.Y, r, nil, l.Style)
-	}
+	DrawString(rect.X, rect.Y, l.Text, l.Style, s)
 }
