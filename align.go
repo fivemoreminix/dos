@@ -7,13 +7,15 @@ import (
 type Positioning uint8
 
 const (
-	// Boxed is the default layout for all Widgets.
-	Boxed Positioning = iota
+	// Inherit is the default layout for all Widgets. It is like Absolute, but
+	// if a rect was provided by the parent.
+	Inherit Positioning = iota
 	// Absolute positioning causes a Widget to be placed at any X, Y coordinate
 	// with any arbitrary width and height as specified. This is useful for
 	// drop-down menus or other floating widgets.
 	Absolute
-	// Relative positioning is similar to Absolute, but causes a Widget to inherit its parent's position.
+	// Relative positioning is similar to Absolute, but causes a Widget to
+	// inherit its parent's position.
 	Relative // TODO: implement relative positioning
 )
 
