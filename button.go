@@ -22,9 +22,7 @@ func (b *Button) Press() {
 
 func (b *Button) HandleMouse(currentRect Rect, ev *tcell.EventMouse) bool {
 	if ev.Buttons()&tcell.ButtonPrimary != 0 {
-		w, h := b.DisplaySize(currentRect.W, currentRect.H)
-		rect := Rect{currentRect.X, currentRect.Y, w, h}
-		if rect.HasPoint(ev.Position()) {
+		if currentRect.HasPoint(ev.Position()) {
 			b.Press()
 			return true
 		}

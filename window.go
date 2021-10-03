@@ -29,6 +29,14 @@ func (w *Window) Close() {
 	}
 }
 
+func (w *Window) GetChildRect() *Rect {
+	if w.Child != nil {
+		childW, childH := w.Child.DisplaySize(w.Rect.W, w.Rect.H-1)
+		return &Rect{w.Rect.X, w.Rect.Y + 1, childW, childH}
+	}
+	return nil
+}
+
 func (w *Window) HandleMouse(_ Rect, ev *tcell.EventMouse) bool {
 	posX, posY := ev.Position()
 
@@ -38,12 +46,20 @@ func (w *Window) HandleMouse(_ Rect, ev *tcell.EventMouse) bool {
 		}
 		w.Rect.X = posX - w.relativeCursorPosX
 		w.Rect.Y = posY - w.relativeCursorPosY
+		w.SetFocused(true)
 		return true
+	}
+
+	if w.Child != nil {
+		if w.Child.HandleMouse(*w.GetChildRect(), ev) {
+			w.SetFocused(true)
+		}
 	}
 
 	if ev.Buttons()&tcell.ButtonPrimary != 0 {
 		// The X button is 3 cells wide, one tall at the top left
 		if !w.DisableClose && posX >= w.Rect.X && posX <= w.Rect.X+3 && posY == w.Rect.Y {
+			w.SetFocused(true)
 			w.Close()
 			return true
 		}
@@ -53,21 +69,20 @@ func (w *Window) HandleMouse(_ Rect, ev *tcell.EventMouse) bool {
 			w.dragging = true
 			w.relativeCursorPosX = posX - w.Rect.X
 			w.relativeCursorPosY = 0
+			w.SetFocused(true)
 			return true
 		}
 
 		// User clicked somewhere inside the window
 		if w.Rect.HasPoint(posX, posY) {
 			w.SetFocused(true) // We're definitely focused after being clicked on
-			if w.Child != nil {
-				// Maybe the event was meant for our child
-				_ = w.Child.HandleMouse(w.Rect, ev)
-			}
+			//if w.Child != nil {
+			//	// Maybe the event was meant for our child
+			//	childW, childH := w.Child.DisplaySize(w.Rect.W, w.Rect.H)
+			//	_ = w.Child.HandleMouse(Rect{w.Rect.X, w.Rect.Y, childW, childH}, ev)
+			//}
 			return true // Return true because we did "handle" the event regardless
 		}
-	}
-	if w.Child != nil && w.Child.HandleMouse(w.Rect, ev) {
-		w.SetFocused(true)
 	}
 	return false
 }
@@ -85,8 +100,8 @@ func (w *Window) SetFocused(b bool) {
 	}
 }
 
-func (_ *Window) DisplaySize(boundsW, boundsH int) (w, h int) {
-	return boundsW, boundsH
+func (w *Window) DisplaySize(boundsW, boundsH int) (int, int) {
+	return w.Rect.W, w.Rect.H
 }
 
 func (w *Window) Draw(_ Rect, s tcell.Screen) {
@@ -104,6 +119,6 @@ func (w *Window) Draw(_ Rect, s tcell.Screen) {
 	DrawString(w.Rect.X, w.Rect.Y, " X ", w.CloseButtonStyle, s)
 	// Draw child
 	if w.Child != nil {
-		w.Child.Draw(Rect{w.Rect.X, w.Rect.Y + 1, w.Rect.W, w.Rect.H - 1}, s)
+		w.Child.Draw(*w.GetChildRect(), s)
 	}
 }
