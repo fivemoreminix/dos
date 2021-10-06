@@ -33,9 +33,24 @@ func main() {
 				"Hello, world!",
 				dos.Rect{5, 3, 30, 5},
 				&dos.Center{
-					Child: &dos.Label{
-						Text:  "Hello, world!",
-						Style: windowStyle,
+					Child: &dos.Column{
+						Children: []dos.Widget{
+							&dos.Label{
+								Text:  "Hello, world!",
+								Style: windowStyle,
+							},
+							&dos.Shadow{
+								Child: &dos.Button{
+									Text:         "Press me",
+									NormalStyle:  windowStyle.Background(tcell.ColorWhite),
+									FocusedStyle: windowStyle.Background(tcell.ColorWhite),
+									OnPressed:    func() {},
+								},
+								Style:     tcell.Style{}.Background(tcell.ColorBlack).Foreground(tcell.ColorGray),
+								MakeSmall: true,
+							},
+						},
+						HorizontalAlign: dos.AlignLeft,
 					},
 				},
 			)},
