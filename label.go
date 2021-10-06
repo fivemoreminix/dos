@@ -24,10 +24,8 @@ func ConfineString(s string, rect Rect, separator string) (lines []string, width
 	for i := 0; i < len(lines); i++ {
 		newLines := strings.Split(runewidth.Wrap(lines[i], rect.W), separator)
 		if len(newLines) > 1 {
-			// Create lines if we don't have enough
-			if count := i + len(newLines) - len(lines); count > 0 {
-				lines = append(lines, make([]string, count)...)
-			}
+			// Append the number of lines we are adding
+			lines = append(lines, make([]string, len(newLines)-1)...)
 			// Shift every item down by len(newLines)
 			copy(lines[Min(i+len(newLines), len(lines)):], lines[i+1:])
 			copy(lines[i:], newLines) // Insert new lines in space
@@ -42,6 +40,7 @@ func ConfineString(s string, rect Rect, separator string) (lines []string, width
 			}
 		}
 	}
+	lines = lines[:Min(len(lines), rect.H)] // Keep line count only as large as rect height
 	return lines, width, len(lines)
 }
 
