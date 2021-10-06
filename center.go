@@ -10,10 +10,7 @@ type Center struct {
 
 func (c *Center) GetChildRect(currentRect Rect) Rect {
 	childWidth, childHeight := c.Child.DisplaySize(currentRect.W, currentRect.H)
-	// Here I subtract 1 from both the x and the y because the widths & heights
-	// are 1-based, while positions are zero-based. Without adding one, all
-	// centered positions are right one, and down one of their correct locations.
-	x, y := currentRect.W/2-1-childWidth/2, currentRect.H/2-1-childHeight/2
+	x, y := currentRect.W/2-childWidth/2, currentRect.H/2-childHeight/2
 	return Rect{currentRect.X + x, currentRect.Y + y, childWidth, childHeight}
 }
 
