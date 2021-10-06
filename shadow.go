@@ -51,13 +51,15 @@ func (s *Shadow) Draw(rect Rect, screen tcell.Screen) {
 	reversedStyle := s.Style.Reverse(true)
 
 	// Right side
+	width := 2
 	if s.MakeSmall {
 		// Draw this in the top right corner
 		screen.SetContent(rect.X+rect.W, rect.Y, '▄', nil, reversedStyle)
+		width = 1
 	}
-	for row := rect.Y + 1; row < rect.Y+rect.H-1; row++ {
+	for row := rect.Y + 1; row < rect.Y+rect.H; row++ {
 		// Draw side two columns wide
-		for col := rect.X + rect.W; col < rect.X+rect.W+1; col++ {
+		for col := rect.X + rect.W; col < rect.X+rect.W+width; col++ {
 			width := s.shadowCell(col, row, screen)
 			if width > 1 {
 				// If we are in the first iteration of the col loop, this will
@@ -67,7 +69,7 @@ func (s *Shadow) Draw(rect Rect, screen tcell.Screen) {
 		}
 	}
 	// Bottom side
-	for col := rect.X + 1; col < rect.X+rect.W+1; col++ {
+	for col := rect.X + 1; col < rect.X+rect.W+width; col++ {
 		if s.MakeSmall {
 			screen.SetContent(col, rect.Y+rect.H, '▀', nil, reversedStyle)
 		} else {

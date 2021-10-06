@@ -84,16 +84,20 @@ func MakeDialog(title string, rect dos.Rect, child dos.Widget) dos.Widget {
 		Positioning: dos.Absolute,
 		Rect:        rect,
 	}
-	align.Child = &dos.Window{
-		Title:            title,
-		Child:            child,
-		HideClose:        true,
-		OnClosed:         nil,
-		DisableMoving:    false,
-		OnMove:           func(posX, posY int) { align.Rect.X = posX; align.Rect.Y = posY },
-		CloseButtonStyle: tcell.Style{}.Background(tcell.ColorRed).Foreground(tcell.ColorBlack),
-		TitleBarStyle:    windowStyle.Background(tcell.ColorWhite),
-		WindowStyle:      windowStyle,
+	align.Child = &dos.Shadow{
+		Child: &dos.Window{
+			Title:            title,
+			Child:            child,
+			HideClose:        true,
+			OnClosed:         nil,
+			DisableMoving:    false,
+			OnMove:           func(posX, posY int) { align.Rect.X = posX; align.Rect.Y = posY },
+			CloseButtonStyle: tcell.Style{}.Background(tcell.ColorRed).Foreground(tcell.ColorBlack),
+			TitleBarStyle:    windowStyle.Background(tcell.ColorWhite),
+			WindowStyle:      windowStyle,
+		},
+		Style:     defaultStyle.Reverse(true),
+		MakeSmall: false,
 	}
 	return align
 }
