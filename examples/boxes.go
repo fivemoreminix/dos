@@ -20,8 +20,16 @@ func main() {
 		fmt.Fprintf(os.Stderr, "failed to initialize: %v", err)
 	}
 
-	app := dos.App{
+	var app dos.App
+	app = dos.App{
 		MainWidget: NewMainWidget(),
+		OnKeyEvent: func(ev *tcell.EventKey) bool {
+			if ev.Key() == tcell.KeyEsc {
+				app.Running = false // Stop the app
+				return true         // Report we handled the event
+			}
+			return false
+		},
 	}
 	app.Run(screen)
 }
@@ -29,7 +37,6 @@ func main() {
 type MainWidget struct {
 	align dos.Align
 	label *dos.Label
-	s     tcell.Screen
 }
 
 func NewMainWidget() *MainWidget {
@@ -54,11 +61,6 @@ func (m *MainWidget) HandleMouse(currentRect dos.Rect, ev *tcell.EventMouse) boo
 }
 
 func (m *MainWidget) HandleKey(ev *tcell.EventKey) bool {
-	if ev.Key() == tcell.KeyEsc {
-		m.s.Fini()
-		os.Exit(0)
-	}
-
 	if ev.Key() == tcell.KeyBS || ev.Key() == tcell.KeyDEL {
 		// Delete the character at the end
 		if len(m.label.Text) > 0 {
@@ -80,9 +82,6 @@ func (m *MainWidget) DisplaySize(boundsW, boundsH int) (w, h int) {
 }
 
 func (m *MainWidget) Draw(rect dos.Rect, s tcell.Screen) {
-	if m.s == nil {
-		m.s = s
-	}
 	// Because the Align is set to Absolute positioning, we give it a position and size through m.align.Rect
 	// I cheat and directly access the align's child to know how big it plans to be, because the align will always
 	// return 0,0 for an absolute size (as expected)
