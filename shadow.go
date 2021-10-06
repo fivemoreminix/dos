@@ -5,8 +5,9 @@ import "github.com/gdamore/tcell/v2"
 // A Shadow draws a shadow covering one cell below, and two cells right of its
 // bounding box. This is useful for dialog windows or buttons that need depth.
 type Shadow struct {
-	Child Widget
-	Style tcell.Style
+	Child     Widget
+	Style     tcell.Style
+	MakeSmall bool
 }
 
 func (s *Shadow) HandleMouse(currentRect Rect, ev *tcell.EventMouse) bool {
@@ -46,7 +47,14 @@ func (s *Shadow) shadowCell(x, y int, screen tcell.Screen) (width int) {
 // The provided rect is passed directly to the child.
 func (s *Shadow) Draw(rect Rect, screen tcell.Screen) {
 	// TODO: make Shadow extents configurable
+
+	reversedStyle := s.Style.Reverse(true)
+
 	// Right side
+	if s.MakeSmall {
+		// Draw this in the top right corner
+		screen.SetContent(rect.X+rect.W, rect.Y, '▄', nil, reversedStyle)
+	}
 	for row := rect.Y + 1; row < rect.Y+rect.H-1; row++ {
 		// Draw side two columns wide
 		for col := rect.X + rect.W; col < rect.X+rect.W+1; col++ {
@@ -60,9 +68,13 @@ func (s *Shadow) Draw(rect Rect, screen tcell.Screen) {
 	}
 	// Bottom side
 	for col := rect.X + 1; col < rect.X+rect.W+1; col++ {
-		width := s.shadowCell(col, rect.Y+rect.H, screen)
-		if width > 1 {
-			col++ // Step over additional cell of east-asian characters
+		if s.MakeSmall {
+			screen.SetContent(col, rect.Y+rect.H, '▀', nil, reversedStyle)
+		} else {
+			width := s.shadowCell(col, rect.Y+rect.H, screen)
+			if width > 1 {
+				col++ // Step over additional cell of east-asian characters
+			}
 		}
 	}
 	// Draw child
