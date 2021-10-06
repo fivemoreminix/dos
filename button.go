@@ -68,9 +68,9 @@ func (b *Button) Draw(rect Rect, s tcell.Screen) {
 			r := ' '
 			if b.focused {
 				if col == 0 {
-					r = '>'
+					r = '▸'
 				} else if col == w-1 {
-					r = '<'
+					r = '◂'
 				}
 			}
 			s.SetContent(rect.X+col, rect.Y, r, nil, style)
