@@ -51,6 +51,7 @@ func (c *Column) GetChildRects(rect Rect) []Rect {
 func (c *Column) HandleMouse(currentRect Rect, ev *tcell.EventMouse) bool {
 	for i := range c.Children {
 		if c.Children[i].HandleMouse(currentRect, ev) {
+			c.SetFocused(false) // Unfocus any prior-focused child
 			c.FocusedIndex = i
 			return true
 		}
