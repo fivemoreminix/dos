@@ -5,7 +5,7 @@ import "github.com/gdamore/tcell/v2"
 type Scaffold struct {
 	MenuBar    *MenuBar
 	MainWidget Widget
-	Windows    []Window
+	Floating   []Widget
 }
 
 func (s *Scaffold) setFocusMenuBar(v bool) {
@@ -21,22 +21,23 @@ func (s *Scaffold) setFocusMainWidget(v bool) {
 }
 
 func (s *Scaffold) setFocusWindows(v bool) {
-	if len(s.Windows) > 0 {
-		s.Windows[len(s.Windows)-1].SetFocused(v)
+	if len(s.Floating) > 0 {
+		s.Floating[len(s.Floating)-1].SetFocused(v)
 	}
 }
 
 func (s *Scaffold) HandleMouse(currentRect Rect, ev *tcell.EventMouse) bool {
-	if len(s.Windows) > 0 {
-		for i := len(s.Windows) - 1; i >= 0; i-- {
-			if s.Windows[i].HandleMouse(s.Windows[i].Rect, ev) {
+	if len(s.Floating) > 0 {
+		for i := len(s.Floating) - 1; i >= 0; i-- {
+			if s.Floating[i].HandleMouse(currentRect, ev) {
 				// This window handled the event, if they are not at the end of
 				// the slice, then we move them there (so they're drawn last).
-				if i == len(s.Windows)-1 {
-					win := s.Windows[i] // Make a copy of item at i
+				if i != len(s.Floating)-1 {
+					s.setFocusWindows(false) // Unfocus current top window
+					win := s.Floating[i]     // Make a copy of item at i
 					// Shift items after i left
-					copy(s.Windows[i:], s.Windows[i+1:])
-					s.Windows[len(s.Windows)-1] = win // Move copy to end
+					copy(s.Floating[i:], s.Floating[i+1:])
+					s.Floating[len(s.Floating)-1] = win // Move copy to end
 				}
 
 				s.setFocusMenuBar(false)
@@ -65,9 +66,9 @@ func (s *Scaffold) HandleMouse(currentRect Rect, ev *tcell.EventMouse) bool {
 }
 
 func (s *Scaffold) HandleKey(ev *tcell.EventKey) bool {
-	if len(s.Windows) > 0 {
-		for i := len(s.Windows) - 1; i >= 0; i-- {
-			if s.Windows[i].HandleKey(ev) {
+	if len(s.Floating) > 0 {
+		for i := len(s.Floating) - 1; i >= 0; i-- {
+			if s.Floating[i].HandleKey(ev) {
 				return true
 			}
 		}
@@ -85,8 +86,8 @@ func (s *Scaffold) HandleKey(ev *tcell.EventKey) bool {
 }
 
 func (s *Scaffold) SetFocused(b bool) {
-	if len(s.Windows) > 0 {
-		s.Windows[len(s.Windows)-1].SetFocused(b)
+	if len(s.Floating) > 0 {
+		s.Floating[len(s.Floating)-1].SetFocused(b)
 	} else if s.MainWidget != nil {
 		s.MainWidget.SetFocused(b)
 	} else if s.MenuBar != nil {
@@ -102,6 +103,7 @@ func (s *Scaffold) Draw(rect Rect, screen tcell.Screen) {
 	if s.MainWidget != nil {
 		mainRect := rect
 		if s.MenuBar != nil {
+			// TODO: should use s.MenuBar.DisplaySize function instead
 			mainRect.Y += 1
 			mainRect.H -= 1
 		}
@@ -110,7 +112,7 @@ func (s *Scaffold) Draw(rect Rect, screen tcell.Screen) {
 	if s.MenuBar != nil {
 		s.MenuBar.Draw(Rect{0, 0, rect.W, 1}, screen)
 	}
-	for i := 0; i < len(s.Windows); i++ { // Draw back to front
-		s.Windows[i].Draw(s.Windows[i].Rect, screen)
+	for i := 0; i < len(s.Floating); i++ { // Draw back to front
+		s.Floating[i].Draw(rect, screen)
 	}
 }

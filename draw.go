@@ -19,3 +19,11 @@ func DrawString(x, y int, s string, style tcell.Style, screen tcell.Screen) {
 		col += runewidth.RuneWidth(r)
 	}
 }
+
+func DrawRect(rect Rect, r rune, style tcell.Style, screen tcell.Screen) {
+	for x := rect.X; x < rect.X+rect.W; x++ {
+		for y := rect.Y; y < rect.Y+rect.H; y++ {
+			screen.SetContent(x, y, r, nil, style)
+		}
+	}
+}

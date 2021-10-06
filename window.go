@@ -5,17 +5,21 @@ import (
 	"github.com/mattn/go-runewidth"
 )
 
+// A Window displays a flexible dialog. The dialog can be moved by the user,
+// but events must be handled with the OnMove and OnClosed callbacks. By
+// standard, the Window assumes the position and size of whatever Rect is
+// provided to Draw and DisplaySize, but you could use an Align to provide the
+// Window an arbitrary position and size on the terminal.
 type Window struct {
-	Rect             Rect
 	Title            string
 	Child            Widget
-	DisableClose     bool
+	HideClose        bool
 	OnClosed         func()
 	DisableMoving    bool
-	DisableResizing  bool
+	OnMove           func(newX, newY int)
 	CloseButtonStyle tcell.Style
 	TitleBarStyle    tcell.Style
-	PanelStyle       tcell.Style
+	WindowStyle      tcell.Style
 
 	// Window dragging-related variables
 	dragging           bool // True if previously received click event on title
@@ -29,52 +33,54 @@ func (w *Window) Close() {
 	}
 }
 
-func (w *Window) GetChildRect() *Rect {
+func (w *Window) GetChildRect(rect Rect) *Rect {
 	if w.Child != nil {
-		childW, childH := w.Child.DisplaySize(w.Rect.W, w.Rect.H-1)
-		return &Rect{w.Rect.X, w.Rect.Y + 1, childW, childH}
+		childW, childH := w.Child.DisplaySize(rect.W, rect.H-1)
+		return &Rect{rect.X, rect.Y + 1, childW, childH}
 	}
 	return nil
 }
 
-func (w *Window) HandleMouse(_ Rect, ev *tcell.EventMouse) bool {
+func (w *Window) HandleMouse(rect Rect, ev *tcell.EventMouse) bool {
 	posX, posY := ev.Position()
 
 	if w.dragging {
 		if ev.Buttons()&tcell.ButtonPrimary != 0 {
 			w.dragging = false // Stop dragging if another click event comes
 		}
-		w.Rect.X = posX - w.relativeCursorPosX
-		w.Rect.Y = posY - w.relativeCursorPosY
 		w.SetFocused(true)
+		// TODO: pass a relative movement difference
+		if w.OnMove != nil {
+			w.OnMove(posX-w.relativeCursorPosX, posY-w.relativeCursorPosY)
+		}
 		return true
 	}
 
 	if w.Child != nil {
-		if w.Child.HandleMouse(*w.GetChildRect(), ev) {
+		if w.Child.HandleMouse(*w.GetChildRect(rect), ev) {
 			w.SetFocused(true)
 		}
 	}
 
 	if ev.Buttons()&tcell.ButtonPrimary != 0 {
 		// The X button is 3 cells wide, one tall at the top left
-		if !w.DisableClose && posX >= w.Rect.X && posX <= w.Rect.X+3 && posY == w.Rect.Y {
+		if !w.HideClose && posX >= rect.X && posX <= rect.X+3 && posY == rect.Y {
 			w.SetFocused(true)
 			w.Close()
 			return true
 		}
 
 		// User clicked anywhere on the title bar
-		if !w.DisableMoving && posX >= w.Rect.X && posX < w.Rect.X+w.Rect.W && posY == w.Rect.Y {
+		if !w.DisableMoving && posX >= rect.X && posX < rect.X+rect.W && posY == rect.Y {
 			w.dragging = true
-			w.relativeCursorPosX = posX - w.Rect.X
+			w.relativeCursorPosX = posX - rect.X
 			w.relativeCursorPosY = 0
 			w.SetFocused(true)
 			return true
 		}
 
 		// User clicked somewhere inside the window
-		if w.Rect.HasPoint(posX, posY) {
+		if rect.HasPoint(posX, posY) {
 			w.SetFocused(true) // We're definitely focused after being clicked on
 			//if w.Child != nil {
 			//	// Maybe the event was meant for our child
@@ -101,24 +107,26 @@ func (w *Window) SetFocused(b bool) {
 }
 
 func (w *Window) DisplaySize(boundsW, boundsH int) (int, int) {
-	return w.Rect.W, w.Rect.H
+	return boundsW, boundsH
 }
 
-func (w *Window) Draw(_ Rect, s tcell.Screen) {
-	for col := 0; col < w.Rect.W; col++ {
-		s.SetContent(w.Rect.X+col, w.Rect.Y, ' ', nil, w.TitleBarStyle)
-		for row := 1; row < w.Rect.H; row++ {
-			s.SetContent(w.Rect.X+col, w.Rect.Y+row, ' ', nil, w.PanelStyle)
+func (w *Window) Draw(rect Rect, s tcell.Screen) {
+	for col := 0; col < rect.W; col++ {
+		s.SetContent(rect.X+col, rect.Y, ' ', nil, w.TitleBarStyle)
+		for row := 1; row < rect.H; row++ {
+			s.SetContent(rect.X+col, rect.Y+row, ' ', nil, w.WindowStyle)
 		}
 	}
 	// Draw title
 	titleWidth := runewidth.StringWidth(w.Title)
-	col := w.Rect.W/2 - titleWidth/2 // Center title
-	DrawString(w.Rect.X+col, w.Rect.Y, w.Title, w.TitleBarStyle, s)
+	col := rect.W/2 - titleWidth/2 // Center title
+	DrawString(rect.X+col, rect.Y, w.Title, w.TitleBarStyle, s)
 	// Draw close button
-	DrawString(w.Rect.X, w.Rect.Y, " X ", w.CloseButtonStyle, s)
+	if !w.HideClose {
+		DrawString(rect.X, rect.Y, " X ", w.CloseButtonStyle, s)
+	}
 	// Draw child
 	if w.Child != nil {
-		w.Child.Draw(*w.GetChildRect(), s)
+		w.Child.Draw(*w.GetChildRect(rect), s)
 	}
 }

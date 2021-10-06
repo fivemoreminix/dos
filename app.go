@@ -27,7 +27,7 @@ func (app *App) Run(s tcell.Screen) {
 	} else {
 		DefaultEventLoop(app, s)
 	}
-	// Put cleanup code here
+	s.Fini()
 }
 
 func DefaultEventLoop(app *App, s tcell.Screen) {
