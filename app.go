@@ -5,6 +5,8 @@ import (
 )
 
 type App struct {
+	ClearRune       rune
+	ClearStyle      tcell.Style // Style used when clearing the screen
 	MainWidget      Widget
 	CustomEventLoop func(app *App, s tcell.Screen)
 	Running         bool
@@ -34,6 +36,7 @@ func DefaultEventLoop(app *App, s tcell.Screen) {
 	w, h := s.Size()
 	for app.Running {
 		s.Clear()
+		s.Fill(app.ClearRune, app.ClearStyle)
 
 		rect := Rect{0, 0, w, h}
 		app.MainWidget.Draw(rect, s)

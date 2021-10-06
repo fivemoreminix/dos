@@ -12,7 +12,13 @@ import (
 )
 
 var (
-	windowStyle = tcell.Style{}.Background(tcell.ColorGrey).Foreground(tcell.ColorBlack)
+	defaultStyle = tcell.Style{}.Background(tcell.ColorBlue).Foreground(tcell.ColorGrey)
+	windowStyle  = tcell.Style{}.Background(tcell.ColorLightBlue).Foreground(tcell.ColorBlack)
+	quote        = `Are you quite sure that all those bells and whistles,
+all those wonderful facilities of your so called powerful programming languages,
+belong to the solution set rather than the problem set?
+
+ — Edsger W. Dijkstra`
 )
 
 func main() {
@@ -26,9 +32,15 @@ func main() {
 
 	var app dos.App
 	app = dos.App{
+		ClearStyle: defaultStyle,
 		MainWidget: &dos.Scaffold{
-			MenuBar:    nil,
-			MainWidget: nil,
+			MenuBar: nil,
+			MainWidget: &dos.Label{
+				Text:    quote,
+				Align:   dos.AlignLeft,
+				WrapLen: 0,
+				Style:   defaultStyle,
+			},
 			Floating: []dos.Widget{MakeDialog(
 				"Hello, world!",
 				dos.Rect{5, 3, 30, 5},
@@ -46,7 +58,7 @@ func main() {
 									FocusedStyle: windowStyle.Background(tcell.ColorWhite),
 									OnPressed:    func() {},
 								},
-								Style:     tcell.Style{}.Background(tcell.ColorBlack).Foreground(tcell.ColorGray),
+								Style:     tcell.Style{}.Background(tcell.ColorGray).Foreground(tcell.ColorLightBlue),
 								MakeSmall: true,
 							},
 						},
@@ -81,7 +93,7 @@ func MakeDialog(title string, rect dos.Rect, child dos.Widget) dos.Widget {
 		OnMove:           func(posX, posY int) { align.Rect.X = posX; align.Rect.Y = posY },
 		CloseButtonStyle: tcell.Style{}.Background(tcell.ColorRed).Foreground(tcell.ColorBlack),
 		TitleBarStyle:    windowStyle.Background(tcell.ColorWhite),
-		WindowStyle:      tcell.Style{}.Background(tcell.ColorGrey).Foreground(tcell.ColorBlack),
+		WindowStyle:      windowStyle,
 	}
 	return align
 }

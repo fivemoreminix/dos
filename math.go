@@ -2,6 +2,29 @@ package dos
 
 import "testing"
 
+// Min returns the smaller of the two values.
+func Min(a, b int) int {
+	if a < b {
+		return a
+	} else {
+		return b
+	}
+}
+
+// Max returns the larger of the two values.
+func Max(a, b int) int {
+	if a > b {
+		return a
+	} else {
+		return b
+	}
+}
+
+// Clamp keeps the input value within a range of [min, max].
+func Clamp(value, min, max int) int {
+	return Max(min, Min(value, max))
+}
+
 type Rect struct {
 	X, Y int
 	W, H int
