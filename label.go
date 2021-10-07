@@ -12,7 +12,6 @@ const (
 	AlignLeft Alignment = iota
 	AlignRight
 	AlignCenter
-	AlignJustify
 )
 
 // ConfineString inserts newlines where a line would run out of the rect,
@@ -86,6 +85,15 @@ func (l *Label) Draw(rect Rect, s tcell.Screen) {
 	}
 	lines, _, lineCount := ConfineString(l.Text, rect, l.GetSeparator())
 	for i := 0; i < lineCount; i++ {
-		DrawString(rect.X, rect.Y+i, lines[i], l.Style, s)
+		switch l.Align {
+		case AlignCenter:
+			x := rect.X + rect.W/2 - runewidth.StringWidth(lines[i])/2
+			DrawString(x, rect.Y+i, lines[i], l.Style, s)
+		case AlignRight:
+			x := rect.X + rect.W - runewidth.StringWidth(lines[i])
+			DrawString(x, rect.Y+i, lines[i], l.Style, s)
+		default:
+			DrawString(rect.X, rect.Y+i, lines[i], l.Style, s)
+		}
 	}
 }
