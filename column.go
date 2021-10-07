@@ -30,10 +30,12 @@ func (c *Column) GetChildRects(rect Rect) []Rect {
 					qualifyingChildren++
 				}
 			}
-			growAmount := (rect.H - childHeightSum) / qualifyingChildren
-			for i := 0; i < childLen; i++ {
-				if rects[i].H == childMaxHeight {
-					rects[i].H += growAmount
+			if qualifyingChildren != 0 {
+				growAmount := (rect.H - childHeightSum) / qualifyingChildren
+				for i := 0; i < childLen; i++ {
+					if rects[i].H == childMaxHeight {
+						rects[i].H += growAmount
+					}
 				}
 			}
 		}
@@ -49,8 +51,9 @@ func (c *Column) GetChildRects(rect Rect) []Rect {
 }
 
 func (c *Column) HandleMouse(currentRect Rect, ev *tcell.EventMouse) bool {
+	rects := c.GetChildRects(currentRect)
 	for i := range c.Children {
-		if c.Children[i].HandleMouse(currentRect, ev) {
+		if c.Children[i].HandleMouse(rects[i], ev) {
 			c.SetFocused(false) // Unfocus any prior-focused child
 			c.FocusedIndex = i
 			return true
