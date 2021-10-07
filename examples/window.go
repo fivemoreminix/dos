@@ -31,10 +31,9 @@ func main() {
 	}
 
 	label := &dos.Label{
-		Text:    quote,
-		Align:   dos.AlignLeft,
-		WrapLen: 0,
-		Style:   defaultStyle,
+		Text:  quote,
+		Align: dos.AlignLeft,
+		Style: defaultStyle,
 	}
 
 	var app dos.App
@@ -74,86 +73,62 @@ func MakeDialog(title string, rect dos.Rect, child dos.Widget) dos.Widget {
 			TitleBarStyle:    windowStyle.Background(tcell.ColorWhite),
 			WindowStyle:      windowStyle,
 		},
-		Style:     defaultStyle.Reverse(true),
+		Style:     tcell.Style{}.Background(tcell.ColorDarkCyan).Foreground(tcell.ColorBlack),
 		MakeSmall: false,
 	}
 	return align
 }
 
-type MainWindow struct {
-	contentLabel *dos.Label
-	child        dos.Widget
+func makeButton(title string, action func()) dos.Widget {
+	return &dos.Padding{
+		Child: &dos.Shadow{
+			Child: &dos.Button{
+				Text:         title,
+				NormalStyle:  windowStyle.Background(tcell.ColorWhite),
+				FocusedStyle: windowStyle.Background(tcell.ColorWhite),
+				OnPressed:    action,
+			},
+			Style:     tcell.Style{}.Background(tcell.ColorTeal).Foreground(tcell.ColorLightBlue),
+			MakeSmall: true,
+		},
+		Top:    1,
+		Right:  1,
+		Bottom: 0,
+		Left:   1,
+	}
 }
 
-func NewMainWindow(label *dos.Label) *MainWindow {
+func NewMainWindow(label *dos.Label) dos.Widget {
 	row := &dos.Row{
 		Children: []dos.Widget{
-			&dos.Padding{
-				Child: &dos.Shadow{
-					Child: &dos.Button{
-						Text:         "Left align",
-						NormalStyle:  windowStyle.Background(tcell.ColorWhite),
-						FocusedStyle: windowStyle.Background(tcell.ColorWhite),
-						OnPressed:    func() { label.Align = dos.AlignLeft },
-					},
-					Style:     tcell.Style{}.Background(tcell.ColorGray).Foreground(tcell.ColorLightBlue),
-					MakeSmall: true,
-				},
-				Top:    1,
-				Right:  1,
-				Bottom: 0,
-				Left:   1,
-			},
-			&dos.Padding{
-				Child: &dos.Shadow{
-					Child: &dos.Button{
-						Text:         "Center align",
-						NormalStyle:  windowStyle.Background(tcell.ColorWhite),
-						FocusedStyle: windowStyle.Background(tcell.ColorWhite),
-						OnPressed:    func() { label.Align = dos.AlignCenter },
-					},
-					Style:     tcell.Style{}.Background(tcell.ColorGray).Foreground(tcell.ColorLightBlue),
-					MakeSmall: true,
-				},
-				Top:    1,
-				Right:  1,
-				Bottom: 0,
-				Left:   1,
-			},
-			&dos.Padding{
-				Child: &dos.Shadow{
-					Child: &dos.Button{
-						Text:         "Right align",
-						NormalStyle:  windowStyle.Background(tcell.ColorWhite),
-						FocusedStyle: windowStyle.Background(tcell.ColorWhite),
-						OnPressed:    func() { label.Align = dos.AlignRight },
-					},
-					Style:     tcell.Style{}.Background(tcell.ColorGray).Foreground(tcell.ColorLightBlue),
-					MakeSmall: true,
-				},
-				Top:    1,
-				Right:  1,
-				Bottom: 0,
-				Left:   1,
-			},
+			makeButton("Left align", func() { label.Align = dos.AlignLeft }),
+			makeButton("Center align", func() { label.Align = dos.AlignCenter }),
+			makeButton("Right align", func() { label.Align = dos.AlignRight }),
 		},
-		VerticalAlign: dos.AlignLeft,
-		FocusedIndex:  0,
-		OnKeyEvent:    nil,
 	}
 	row.OnKeyEvent = func(ev *tcell.EventKey) bool {
-		if ev.Key() == tcell.KeyTab {
-			row.SetFocused(false)
-			row.FocusedIndex++
+		switch ev.Key() {
+		case tcell.KeyRight:
+			fallthrough
+		case tcell.KeyTab:
+			row.SetFocused(false) // Unfocus currently focused button
+			row.FocusedIndex++    // Change pointer of focus
 			if row.FocusedIndex >= len(row.Children) {
 				row.FocusedIndex = 0
 			}
-			row.SetFocused(true)
-			return true
+		case tcell.KeyLeft:
+			row.SetFocused(false)
+			row.FocusedIndex--
+			if row.FocusedIndex < 0 {
+				row.FocusedIndex = len(row.Children) - 1
+			}
+		default:
+			return false
 		}
-		return false
+		row.SetFocused(true) // Alert focused button
+		return true
 	}
-	dialog := MakeDialog(
+	return MakeDialog(
 		"Text Alignment",
 		dos.Rect{5, 3, 53, 6},
 		&dos.Center{
@@ -168,33 +143,8 @@ func NewMainWindow(label *dos.Label) *MainWindow {
 					},
 					row,
 				},
-				HorizontalAlign: dos.AlignLeft,
-				FocusedIndex:    1,
+				FocusedIndex: 1, // Focus row only
 			},
 		},
 	)
-	return &MainWindow{
-		contentLabel: label,
-		child:        dialog,
-	}
-}
-
-func (m *MainWindow) HandleMouse(currentRect dos.Rect, ev *tcell.EventMouse) bool {
-	return m.child.HandleMouse(currentRect, ev)
-}
-
-func (m *MainWindow) HandleKey(ev *tcell.EventKey) bool {
-	return m.child.HandleKey(ev)
-}
-
-func (m *MainWindow) SetFocused(b bool) {
-	m.child.SetFocused(b)
-}
-
-func (m *MainWindow) DisplaySize(boundsW, boundsH int) (w, h int) {
-	return m.child.DisplaySize(boundsW, boundsH)
-}
-
-func (m *MainWindow) Draw(rect dos.Rect, s tcell.Screen) {
-	m.child.Draw(rect, s)
 }
