@@ -12,6 +12,8 @@ const (
 	AlignLeft Alignment = iota
 	AlignRight
 	AlignCenter
+	AlignStart = AlignLeft
+	AlignEnd   = AlignRight
 )
 
 // ConfineString inserts newlines where a line would run out of the rect,

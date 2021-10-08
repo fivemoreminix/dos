@@ -143,7 +143,8 @@ func NewMainWindow(label *dos.Label) dos.Widget {
 					},
 					row,
 				},
-				FocusedIndex: 1, // Focus row only
+				HorizontalAlign: dos.AlignCenter,
+				FocusedIndex:    1, // Focus row only
 			},
 		},
 	)

@@ -19,8 +19,16 @@ func (c *Column) GetChildRects(rect Rect) []Rect {
 		childMaxHeight := rect.H / childLen
 		for i := 0; i < childLen; i++ {
 			w, h := c.Children[i].DisplaySize(rect.W, childMaxHeight)
-			// TODO: implement HorizontalAlign for Column here
-			rects[i] = Rect{rect.X, 0, w, h}
+			var x int
+			switch c.HorizontalAlign {
+			case AlignCenter:
+				x = rect.X + rect.W/2 - w/2
+			case AlignRight:
+				x = rect.X + rect.W - w
+			default:
+				x = rect.X
+			}
+			rects[i] = Rect{x, 0, w, h}
 			childHeightSum += h
 		}
 		if childHeightSum < rect.H {

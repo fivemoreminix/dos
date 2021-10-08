@@ -19,8 +19,16 @@ func (r *Row) GetChildRects(rect Rect) []Rect {
 		childMaxWidth := rect.W / childLen
 		for i := 0; i < childLen; i++ {
 			w, h := r.Children[i].DisplaySize(childMaxWidth, rect.H)
-			// TODO: implement VerticalAlign for Row here
-			rects[i] = Rect{0, rect.Y, w, h}
+			var y int
+			switch r.VerticalAlign {
+			case AlignCenter:
+				y = rect.Y + rect.H/2 - h/2
+			case AlignRight:
+				y = rect.Y + rect.H - h
+			default:
+				y = rect.Y
+			}
+			rects[i] = Rect{0, y, w, h}
 			childWidthSum += w
 		}
 		if childWidthSum < rect.H {
