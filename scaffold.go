@@ -60,6 +60,17 @@ func (s *Scaffold) setFocusFloating(v bool) {
 	}
 }
 
+func (s *Scaffold) mainWidgetRect(currentRect Rect) Rect {
+	rect := currentRect
+	if s.MenuBar != nil {
+		_, h := s.MenuBar.DisplaySize(currentRect.W, currentRect.H)
+		rect.Y += h
+		rect.H -= h
+	}
+	w, h := s.MainWidget.DisplaySize(rect.W, rect.H)
+	return Rect{rect.X, rect.Y, w, h}
+}
+
 func (s *Scaffold) HandleMouse(currentRect Rect, ev *tcell.EventMouse) bool {
 	if len(s.Floating) > 0 {
 		for i := len(s.Floating) - 1; i >= 0; i-- {
@@ -82,8 +93,7 @@ func (s *Scaffold) HandleMouse(currentRect Rect, ev *tcell.EventMouse) bool {
 		}
 	}
 	if s.MainWidget != nil {
-		w, h := s.MainWidget.DisplaySize(currentRect.W, currentRect.H)
-		if s.MainWidget.HandleMouse(Rect{currentRect.X, currentRect.Y, w, h}, ev) {
+		if s.MainWidget.HandleMouse(s.mainWidgetRect(currentRect), ev) {
 			s.setFocusMenuBar(false)
 			s.setFocusFloating(false)
 			s.focusIdx = 1
@@ -141,13 +151,7 @@ func (s *Scaffold) DisplaySize(boundsW, boundsH int) (w, h int) {
 
 func (s *Scaffold) Draw(rect Rect, screen tcell.Screen) {
 	if s.MainWidget != nil {
-		mainRect := rect
-		if s.MenuBar != nil {
-			_, h := s.MenuBar.DisplaySize(rect.W, rect.H)
-			mainRect.Y += h
-			mainRect.H -= h
-		}
-		s.MainWidget.Draw(mainRect, screen)
+		s.MainWidget.Draw(s.mainWidgetRect(rect), screen)
 	}
 	if s.MenuBar != nil {
 		s.MenuBar.Draw(Rect{0, 0, rect.W, 1}, screen)
