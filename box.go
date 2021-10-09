@@ -7,9 +7,18 @@ import (
 // The BoxDecoration allows for an individual rune per side and corner of the
 // box being drawn. See https://en.wikipedia.org/wiki/Box-drawing_character
 type BoxDecoration struct {
-	T, R, B, L     rune // Clockwise sides
+	Hor, Vert      rune // Horizontal and vertical sides
 	TL, TR, BR, BL rune // Clockwise corners
+	JointT, JointR rune // Joints (for menus and other divided boxes)
+	JointB, JointL rune
 	Style          tcell.Style
+}
+
+// WithStyle is a helper function to make a copy of the BoxDecoration with a
+// different style.
+func (b BoxDecoration) WithStyle(style tcell.Style) BoxDecoration {
+	b.Style = style
+	return b
 }
 
 // A Box draws an enclosed rectangle around its Child. A Box assumes each rune
@@ -21,15 +30,17 @@ type Box struct {
 }
 
 var DefaultBoxDecoration = BoxDecoration{
-	T:     '─',
-	R:     '│',
-	B:     '─',
-	L:     '│',
-	TL:    '┌',
-	TR:    '┐',
-	BR:    '┘',
-	BL:    '└',
-	Style: tcell.StyleDefault,
+	Hor:    '─',
+	Vert:   '│',
+	TL:     '┌',
+	TR:     '┐',
+	BR:     '┘',
+	BL:     '└',
+	JointT: '┬',
+	JointR: '┤',
+	JointB: '┴',
+	JointL: '├',
+	Style:  tcell.StyleDefault,
 }
 
 func (b *Box) HandleMouse(currentRect Rect, ev *tcell.EventMouse) bool {
@@ -71,22 +82,7 @@ func (b *Box) Draw(rect Rect, s tcell.Screen) {
 		decoration = &DefaultBoxDecoration
 	}
 
-	// Draw top left and bottom left corners
-	s.SetContent(rect.X, rect.Y, decoration.TL, nil, decoration.Style)
-	s.SetContent(rect.X, rect.Y+rect.H-1, decoration.BL, nil, decoration.Style)
-	// Draw top right and bottom right corners
-	s.SetContent(rect.X+rect.W-1, rect.Y, decoration.TR, nil, decoration.Style)
-	s.SetContent(rect.X+rect.W-1, rect.Y+rect.H-1, decoration.BR, nil, decoration.Style)
-	// Draw top and bottom sides
-	for col := 1; col < rect.W-1; col++ {
-		s.SetContent(rect.X+col, rect.Y, decoration.T, nil, decoration.Style)
-		s.SetContent(rect.X+col, rect.Y+rect.H-1, decoration.B, nil, decoration.Style)
-	}
-	// Draw left and right sides
-	for row := 1; row < rect.H-1; row++ {
-		s.SetContent(rect.X, rect.Y+row, decoration.L, nil, decoration.Style)
-		s.SetContent(rect.X+rect.W-1, rect.Y+row, decoration.R, nil, decoration.Style)
-	}
+	DrawBox(rect, decoration, s)
 
 	if b.Child != nil {
 		b.Child.Draw(Rect{rect.X + 1, rect.Y + 1, rect.W - 1, rect.H - 1}, s)

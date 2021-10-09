@@ -30,15 +30,49 @@ type MenuItem struct {
 // an event to the Menu if it is not focused or otherwise visible.
 type Menu struct {
 	Items          []MenuItem
-	Decorated      bool // Whether to draw a styled box around the Menu
+	Decorated      bool           // Whether to draw a styled box around the Menu
+	Decoration     *BoxDecoration // Used only if Decorated is true
 	NormalStyle    tcell.Style
 	SelectionStyle tcell.Style
 	Selected       int
 	itemsExpanded  bool // True if the Selected submenu should be visible
 }
 
-func (m *Menu) HandleMouse(currentRect Rect, ev *tcell.EventMouse) bool {
-	return false // TODO: mouse support for Menu
+func (m *Menu) ActivateItem(idx int) {
+	switch item := m.Items[idx]; item.Type {
+	case MenuItemAction:
+		if item.Action != nil {
+			item.Action()
+		}
+	case MenuItemSubmenu:
+	case MenuItemSeparator:
+	}
+}
+
+func (m *Menu) HandleMouse(rect Rect, ev *tcell.EventMouse) bool {
+	if ev.Buttons() == tcell.ButtonPrimary {
+		sizeW, sizeH := m.DisplaySize(0, 0)
+		posX, posY := ev.Position()
+		// Check if user clicked any part of the menu (including border)
+		if posX >= rect.X && posX < rect.X+sizeW && posY >= rect.Y && posY < rect.Y+sizeH {
+			offsetX, offsetY := 0, 0
+			if m.Decorated { // If we have a border around the menu
+				sizeW -= 2
+				offsetX, offsetY = 1, 1
+			}
+			// Check that the click occurred between the borders of the menu
+			if posX >= rect.X+offsetX && posX < rect.X+offsetX+sizeW {
+				for i := 0; i < len(m.Items); i++ {
+					if posY == rect.Y+i+offsetY {
+						m.Selected = i
+						m.ActivateItem(i)
+					}
+				}
+			}
+			return true // User clicked somewhere in the menu
+		}
+	}
+	return false
 }
 
 func (m *Menu) HandleKey(ev *tcell.EventKey) bool {
@@ -46,24 +80,27 @@ func (m *Menu) HandleKey(ev *tcell.EventKey) bool {
 	if m.Items != nil && len(m.Items) > 0 {
 		switch ev.Key() {
 		case tcell.KeyUp:
-			m.Selected--
-			if m.Selected < 0 {
-				m.Selected = len(m.Items) - 1
+			for {
+				m.Selected--
+				if m.Selected < 0 {
+					m.Selected = len(m.Items) - 1
+				}
+				if m.Items[m.Selected].Type != MenuItemSeparator {
+					break // TODO: Loop has the potential to block forever
+				}
 			}
 		case tcell.KeyDown:
-			m.Selected++
-			if m.Selected >= len(m.Items) {
-				m.Selected = 0
+			for {
+				m.Selected++
+				if m.Selected >= len(m.Items) {
+					m.Selected = 0
+				}
+				if m.Items[m.Selected].Type != MenuItemSeparator {
+					break
+				}
 			}
 		case tcell.KeyEnter:
-			switch item := m.Items[m.Selected]; item.Type {
-			case MenuItemAction:
-				if item.Action != nil {
-					item.Action()
-				}
-			case MenuItemSubmenu:
-			case MenuItemSeparator:
-			}
+			m.ActivateItem(m.Selected)
 		default:
 			return false
 		}
@@ -84,20 +121,42 @@ func (m *Menu) DisplaySize(int, int) (w int, h int) {
 			widestItemWidth = width
 		}
 	}
-	return widestItemWidth, len(m.Items)
+	if m.Decorated {
+		return widestItemWidth + 2, len(m.Items) + 2
+	} else {
+		return widestItemWidth, len(m.Items)
+	}
 }
 
 func (m *Menu) Draw(rect Rect, s tcell.Screen) {
 	width, _ := m.DisplaySize(0, 0)
-	for row := 0; row < len(m.Items); row++ {
+	offsetX, offsetY := 0, 0
+	decoration := m.Decoration
+	if m.Decorated {
+		offsetX = 1
+		offsetY = 1
+		if decoration == nil {
+			decoration = &DefaultBoxDecoration
+		}
+		DrawBox(rect, decoration, s)
+	}
+	for i := 0; i < len(m.Items); i++ {
 		style := m.NormalStyle
-		if row == m.Selected {
+		if i == m.Selected {
 			style = m.SelectionStyle
 		}
 
-		for col := 0; col < width; col++ {
-			s.SetContent(rect.X+col, rect.Y+row, ' ', nil, style)
+		if m.Items[i].Type == MenuItemSeparator && m.Decorated {
+			s.SetContent(rect.X, rect.Y+offsetY+i, decoration.JointL, nil, decoration.Style)
+			s.SetContent(rect.X+width-1, rect.Y+offsetY+i, decoration.JointR, nil, decoration.Style)
+			for col := 0; col < width-offsetX*2; col++ {
+				s.SetContent(rect.X+offsetX+col, rect.Y+offsetY+i, decoration.Hor, nil, decoration.Style)
+			}
+		} else {
+			for col := 0; col < width-offsetX*2; col++ {
+				s.SetContent(rect.X+offsetX+col, rect.Y+offsetY+i, ' ', nil, style)
+			}
+			DrawString(rect.X+offsetX, rect.Y+offsetY+i, m.Items[i].Title, style, s)
 		}
-		DrawString(rect.X, rect.Y+row, m.Items[row].Title, style, s)
 	}
 }

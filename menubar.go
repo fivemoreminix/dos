@@ -65,11 +65,15 @@ func (m *MenuBar) HandleKey(ev *tcell.EventKey) bool {
 
 		switch ev.Key() {
 		case tcell.KeyLeft:
+			// Reset menu selection idx before changing
+			m.Menus[m.Selected].Selected = 0
 			m.Selected--
 			if m.Selected < 0 {
 				m.Selected = len(m.Menus) - 1
 			}
 		case tcell.KeyRight:
+			// Reset menu selection before changing
+			m.Menus[m.Selected].Selected = 0
 			m.Selected++
 			if m.Selected >= len(m.Menus) {
 				m.Selected = 0
@@ -89,6 +93,7 @@ func (m *MenuBar) SetFocused(b bool) {
 	if !b {
 		m.expanded = false
 	}
+	m.Menus[m.Selected].Selected = 0
 	// NOTE: I am not calling SetFocused on the highlighted menu because currently
 	// menus do not accept focus.
 }
