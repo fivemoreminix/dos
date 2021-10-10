@@ -49,7 +49,7 @@ func (m *MainWidget) HandleMouse(currentRect dos.Rect, ev *tcell.EventMouse) boo
 	return false
 }
 
-func (m *MainWidget) HandleKey(ev *tcell2.EventKey) bool {
+func (m *MainWidget) HandleKey(ev *tcell.EventKey) bool {
 	if ev.Key() == tcell.KeyEsc {
 		m.s.Fini() // Reset the state of the terminal
 		os.Exit(0)
