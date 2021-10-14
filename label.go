@@ -81,7 +81,6 @@ func (l *Label) DisplaySize(boundsW, boundsH int) (w, h int) {
 }
 
 func (l *Label) Draw(rect Rect, s tcell.Screen) {
-	// TODO: handle text alignment
 	if l.WrapLen > 0 {
 		rect.W = Min(l.WrapLen, rect.W)
 	}
