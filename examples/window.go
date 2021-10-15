@@ -105,28 +105,19 @@ func NewMainWindow(label *dos.Label) dos.Widget {
 			makeButton("Center align", func() { label.Align = dos.AlignCenter }),
 			makeButton("Right align", func() { label.Align = dos.AlignRight }),
 		},
-	}
-	row.OnKeyEvent = func(ev *tcell.EventKey) bool {
-		switch ev.Key() {
-		case tcell.KeyRight:
-			fallthrough
-		case tcell.KeyTab:
-			row.SetFocused(false) // Unfocus currently focused button
-			row.FocusedIndex++    // Change pointer of focus
-			if row.FocusedIndex >= len(row.Children) {
-				row.FocusedIndex = 0
+		OnKeyEvent: func(row *dos.Row, ev *tcell.EventKey) bool {
+			switch ev.Key() {
+			case tcell.KeyRight:
+				fallthrough
+			case tcell.KeyTab:
+				row.FocusNext()
+			case tcell.KeyLeft:
+				row.FocusPrevious()
+			default:
+				return false
 			}
-		case tcell.KeyLeft:
-			row.SetFocused(false)
-			row.FocusedIndex--
-			if row.FocusedIndex < 0 {
-				row.FocusedIndex = len(row.Children) - 1
-			}
-		default:
-			return false
-		}
-		row.SetFocused(true) // Alert focused button
-		return true
+			return true
+		},
 	}
 	return MakeDialog(
 		"Text Alignment",

@@ -9,7 +9,32 @@ type Row struct {
 	Children      []Widget
 	VerticalAlign Alignment
 	FocusedIndex  int // Index of child that receives focus
-	OnKeyEvent    func(ev *tcell.EventKey) bool
+	OnKeyEvent    func(row *Row, ev *tcell.EventKey) bool
+	focused       bool
+}
+
+func (r *Row) FocusNext() {
+	if len(r.Children) < 2 {
+		return
+	}
+	r.SetFocused(false) // Unfocus focused child
+	r.FocusedIndex++
+	if r.FocusedIndex >= len(r.Children) {
+		r.FocusedIndex = 0
+	}
+	r.SetFocused(r.focused)
+}
+
+func (r *Row) FocusPrevious() {
+	if len(r.Children) < 2 {
+		return
+	}
+	r.SetFocused(false) // Unfocus focused child
+	r.FocusedIndex--
+	if r.FocusedIndex < 0 {
+		r.FocusedIndex = len(r.Children) - 1
+	}
+	r.SetFocused(r.focused)
 }
 
 func (r *Row) GetChildRects(rect Rect) []Rect {
@@ -69,7 +94,7 @@ func (r *Row) HandleMouse(currentRect Rect, ev *tcell.EventMouse) bool {
 }
 
 func (r *Row) HandleKey(ev *tcell.EventKey) bool {
-	if r.OnKeyEvent != nil && r.OnKeyEvent(ev) {
+	if r.OnKeyEvent != nil && r.OnKeyEvent(r, ev) {
 		return true
 	}
 	for i := range r.Children {
@@ -81,6 +106,7 @@ func (r *Row) HandleKey(ev *tcell.EventKey) bool {
 }
 
 func (r *Row) SetFocused(b bool) {
+	r.focused = b
 	if r.FocusedIndex < len(r.Children) {
 		r.Children[r.FocusedIndex].SetFocused(b)
 	}
