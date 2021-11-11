@@ -81,17 +81,17 @@ func (b *RopeBuffer) Slice(startLine, startCol, endLine, endCol int) []byte {
 	return b.rope.Slice(b.LineColToPos(startLine, startCol), endPos+1)
 }
 
-func (b *RopeBuffer) RuneAtPos(pos int) (val rune) {
-	_, r := b.rope.SplitAt(pos)
-	l, _ := r.SplitAt(b.rope.Len() - pos)
+func (b *RopeBuffer) RuneAtPos(pos int) (r rune, size int) {
+	_, right := b.rope.SplitAt(pos)
+	l, _ := right.SplitAt(b.rope.Len() - pos)
 
 	l.EachLeaf(func(n *ropes.Node) bool {
 		data := n.Value() // Reference; not a copy.
-		val, _ = utf8.DecodeRune(data[0:])
+		r, size = utf8.DecodeRune(data)
 		return true
 	})
 
-	return 0
+	return 0, 0
 }
 
 func (b *RopeBuffer) EachRuneFromPos(pos int, f func(pos int, r rune) bool) {

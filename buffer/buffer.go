@@ -23,9 +23,10 @@ type Buffer interface {
 	// so do not write to it.
 	Slice(startLine, startCol, endLine, endCol int) []byte
 
-	// RuneAtPos returns the UTF-8 rune at the byte position `pos` of the buffer. The
-	// position must be a correct position, otherwise zero is returned.
-	RuneAtPos(pos int) rune
+	// RuneAtPos returns the UTF-8 rune at the byte position `pos` of the buffer and the
+	// size of the rune in bytes. The position must be valid, otherwise zero will be
+	// returned.
+	RuneAtPos(pos int) (r rune, size int)
 
 	// EachRuneFromPos executes the function `f` for each rune from byte position `pos`.
 	// This function should be used as opposed to performing a "per character" operation

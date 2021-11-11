@@ -98,7 +98,8 @@ func (c *Cursor) NextWordBoundaryEnd() {
 	// jump to position *after* any symbols
 
 	pos := c.buffer.LineColToPos(c.Line, c.Col)
-	startClass := getRuneCharclass(c.buffer.RuneAtPos(pos))
+	r, _ := c.buffer.RuneAtPos(pos)
+	startClass := getRuneCharclass(r)
 	pos++
 	c.buffer.EachRuneFromPos(pos, func(rpos int, r rune) bool {
 		class := getRuneCharclass(r)
