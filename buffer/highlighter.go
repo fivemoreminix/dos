@@ -92,7 +92,8 @@ func (h *Highlighter) updateLines(startLine, endLine int) {
 	// of view until the end of view. For any k that has an End, we search for ends from start
 	// of view, backtracking when one is found, to fulfill a multiline highlight.
 
-	endLine, endCol := h.Buffer.ClampLineCol(endLine, (h.Buffer).RunesInLineWithDelim(endLine)-1)
+	runes, _ := (h.Buffer).RunesInLine(endLine, false)
+	endLine, endCol := h.Buffer.ClampLineCol(endLine, runes)
 	startPos := h.Buffer.LineColToPos(startLine, 0)
 	bytes := h.Buffer.Slice(startLine, 0, endLine, endCol)
 

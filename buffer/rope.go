@@ -1,6 +1,7 @@
 package buffer
 
 import (
+	bytealg "bytes"
 	"io"
 	"unicode/utf8"
 
@@ -8,22 +9,19 @@ import (
 )
 
 type RopeBuffer struct {
-	rope    *ropes.Node
-	anchors []*Cursor
+	rope      *ropes.Node
+	anchors   []*Cursor
+	lineDelim string
 }
 
 func NewRopeBuffer(contents []byte) *RopeBuffer {
 	return &RopeBuffer{
 		ropes.New(contents),
 		nil,
+		DetectLineDelim(contents),
 	}
 }
 
-// LineColToPos returns the index of the byte at line, col. If line is less than
-// zero, or more than the number of available lines, the function will panic. If
-// col is less than zero, the function will panic. If col is greater than the
-// length of the line, the position of the last byte of the line is returned,
-// instead.
 func (b *RopeBuffer) LineColToPos(line, col int) int {
 	pos := b.getLineStartPos(line)
 
@@ -50,44 +48,31 @@ func (b *RopeBuffer) LineColToPos(line, col int) int {
 	return pos
 }
 
-// Line returns a slice of the data at the given line, including the ending line-
-// delimiter. line starts from zero. Data returned may or may not be a copy: do not
-// write it.
-func (b *RopeBuffer) Line(line int) []byte {
+func (b *RopeBuffer) Line(line int, delim bool) (bytes []byte, hasDelim bool) {
 	pos := b.getLineStartPos(line)
-	bytes := 0
+	bytesLen := 0
 
 	_, r := b.rope.SplitAt(pos)
 	l, _ := r.SplitAt(b.rope.Len() - pos)
 
-	var isCRLF bool // true if the last byte was '\r'
 	l.EachLeaf(func(n *ropes.Node) bool {
 		data := n.Value() // Reference; not a copy.
-		for i, r := range string(data) {
-			if r == '\r' {
-				isCRLF = true
-			} else if r == '\n' {
-				bytes += i // Add bytes before i
-				if isCRLF {
-					bytes += 2 // Add the CRLF bytes
-				} else {
-					bytes += 1 // Add LF byte
-				}
-				return true // Read (past-tense) the whole line
-			} else {
-				isCRLF = false
+		delimPos := bytealg.Index(data, []byte(b.lineDelim))
+		if delimPos != -1 { // Delim found
+			if delim {
+				delimPos = len(data) // Tells us to capture all of data
+				hasDelim = true
 			}
+			bytesLen += delimPos
+			return true
 		}
-		bytes += len(data)
+		bytesLen += len(data)
 		return false // Have not read the whole line, yet
 	})
 
-	return b.rope.Slice(pos, pos+bytes) // NOTE: may be faster to do it ourselves
+	return b.rope.Slice(pos, pos+bytesLen), hasDelim // NOTE: may be faster to do it ourselves
 }
 
-// Returns a slice of the buffer from startLine, startCol, to endLine, endCol,
-// inclusive bounds. The returned value may or may not be a copy of the data,
-// so do not write to it.
 func (b *RopeBuffer) Slice(startLine, startCol, endLine, endCol int) []byte {
 	endPos := b.LineColToPos(endLine, endCol)
 	if length := b.rope.Len(); endPos >= length {
@@ -96,8 +81,6 @@ func (b *RopeBuffer) Slice(startLine, startCol, endLine, endCol int) []byte {
 	return b.rope.Slice(b.LineColToPos(startLine, startCol), endPos+1)
 }
 
-// RuneAtPos returns the UTF-8 rune at the byte position `pos` of the buffer. The
-// position must be a correct position, otherwise zero is returned.
 func (b *RopeBuffer) RuneAtPos(pos int) (val rune) {
 	_, r := b.rope.SplitAt(pos)
 	l, _ := r.SplitAt(b.rope.Len() - pos)
@@ -111,11 +94,7 @@ func (b *RopeBuffer) RuneAtPos(pos int) (val rune) {
 	return 0
 }
 
-// EachRuneAtPos executes the function `f` at each rune after byte position `pos`.
-// This function should be used as opposed to performing a "per character" operation
-// manually, as it enables caching buffer operations and safety checks. The function
-// returns when the end of the buffer is met or `f` returns true.
-func (b *RopeBuffer) EachRuneAtPos(pos int, f func(pos int, r rune) bool) {
+func (b *RopeBuffer) EachRuneFromPos(pos int, f func(pos int, r rune) bool) {
 	_, r := b.rope.SplitAt(pos)
 	l, _ := r.SplitAt(b.rope.Len() - pos)
 
@@ -130,21 +109,15 @@ func (b *RopeBuffer) EachRuneAtPos(pos int, f func(pos int, r rune) bool) {
 	})
 }
 
-// Bytes returns all of the bytes in the buffer. This function is very likely
-// to copy all of the data in the buffer. Use sparingly. Try using other methods,
-// where possible.
 func (b *RopeBuffer) Bytes() []byte {
 	return b.rope.Value()
 }
 
-// Insert copies a byte slice (inserting it) into the position at line, col.
 func (b *RopeBuffer) Insert(line, col int, value []byte) {
 	b.rope.Insert(b.LineColToPos(line, col), value)
 	b.shiftAnchors(line, col, utf8.RuneCount(value))
 }
 
-// Remove deletes any characters between startLine, startCol, and endLine,
-// endCol, inclusive bounds.
 func (b *RopeBuffer) Remove(startLine, startCol, endLine, endCol int) {
 	start := b.LineColToPos(startLine, startCol)
 	end := b.LineColToPos(endLine, endCol) + 1
@@ -163,25 +136,32 @@ func (b *RopeBuffer) Remove(startLine, startCol, endLine, endCol int) {
 	b.shiftAnchors(endLine, endCol+1, start-end-1)
 }
 
-// Returns the number of occurrences of 'sequence' in the buffer, within the range
-// of start line and col, to end line and col. End is exclusive.
 func (b *RopeBuffer) Count(startLine, startCol, endLine, endCol int, sequence []byte) int {
 	startPos := b.LineColToPos(startLine, startCol)
 	endPos := b.LineColToPos(endLine, endCol)
-	return b.rope.Count(startPos, endPos, sequence)
+	return b.rope.Count(startPos, endPos+1, sequence)
 }
 
-// Len returns the number of bytes in the buffer.
 func (b *RopeBuffer) Len() int {
 	return b.rope.Len()
 }
 
-// Lines returns the number of lines in the buffer. If the buffer is empty,
-// 1 is returned, because there is always at least one line. This function
-// basically counts the number of newline ('\n') characters in a buffer.
 func (b *RopeBuffer) Lines() int {
 	rope := b.rope
 	return rope.Count(0, rope.Len(), []byte{'\n'}) + 1
+}
+
+func (b *RopeBuffer) LineDelimiter() string {
+	return b.lineDelim
+}
+
+func (b *RopeBuffer) SetLineDelimiter(delim string) {
+	b.lineDelim = delim
+}
+
+func (b *RopeBuffer) LineHasDelimiter(line int) bool {
+	_, hasDelim := b.Line(line, true)
+	return hasDelim // TODO: make this obsolete by providing delim bool params to functions
 }
 
 // getLineStartPos returns the first byte index of the given line (starting from zero).
@@ -200,79 +180,40 @@ func (b *RopeBuffer) getLineStartPos(line int) int {
 	}
 
 	if line > 0 { // If there aren't enough lines to reach line...
-		panic("getLineStartPos: not enough lines in buffer to reach position")
+		panic("not enough lines in buffer to reach position")
 	}
 
 	return pos
 }
 
-// RunesInLineWithDelim returns the number of runes in the given line. That is, the
-// number of Utf-8 codepoints in the line, not bytes. Includes the line delimiter
-// in the count. If that line delimiter is CRLF ('\r\n'), then it adds two.
-func (b *RopeBuffer) RunesInLineWithDelim(line int) int {
+func (b *RopeBuffer) RunesInLine(line int, delim bool) (runes int, hasDelim bool) {
 	linePos := b.getLineStartPos(line)
 
 	ropeLen := b.rope.Len()
 
 	if linePos >= ropeLen {
-		return 0
+		return 0, false
 	}
-
-	var count int
 
 	_, r := b.rope.SplitAt(linePos)
 	l, _ := r.SplitAt(ropeLen - linePos)
 
 	l.EachLeaf(func(n *ropes.Node) bool {
 		data := n.Value() // Reference; not a copy.
-		for _, r := range string(data) {
-			count++ // Before: we count the line delimiter
-			if r == '\n' {
-				return true // Read (past-tense) the whole line
+		delimPos := bytealg.Index(data, []byte(b.lineDelim))
+		if delimPos != -1 { // Delim found
+			if delim {
+				delimPos = len(data) // Causes us to capture all of data's length
+				hasDelim = true
 			}
+			runes += utf8.RuneCount(data[:delimPos])
+			return true
 		}
+		runes += utf8.RuneCount(data)
 		return false // Have not read the whole line, yet
 	})
 
-	return count
-}
-
-// RunesInLine returns the number of runes in the given line. That is, the
-// number of Utf-8 codepoints in the line, not bytes. Excludes line delimiters.
-func (b *RopeBuffer) RunesInLine(line int) int {
-	linePos := b.getLineStartPos(line)
-
-	ropeLen := b.rope.Len()
-
-	if linePos >= ropeLen {
-		return 0
-	}
-
-	var count int
-
-	_, r := b.rope.SplitAt(linePos)
-	l, _ := r.SplitAt(ropeLen - linePos)
-
-	var isCRLF bool
-	l.EachLeaf(func(n *ropes.Node) bool {
-		data := n.Value() // Reference; not a copy.
-		for _, r := range string(data) {
-			if r == '\r' {
-				isCRLF = true
-			} else if r == '\n' {
-				return true // Read (past-tense) the whole line
-			} else {
-				if isCRLF {
-					isCRLF = false
-					count++ // Add the '\r' we previously thought was part of the delim.
-				}
-			}
-			count++
-		}
-		return false // Have not read the whole line, yet
-	})
-
-	return count
+	return
 }
 
 // ClampLineCol is a utility function to clamp any provided line and col to
@@ -288,7 +229,7 @@ func (b *RopeBuffer) ClampLineCol(line, col int) (int, int) {
 
 	if col < 0 {
 		col = 0
-	} else if runes := b.RunesInLine(line); col > runes {
+	} else if runes, _ := b.RunesInLine(line, false); col > runes {
 		col = runes
 	}
 
@@ -343,24 +284,35 @@ func (b *RopeBuffer) WriteTo(w io.Writer) (int64, error) {
 // Currently meant for the Remove function: imagine if the removed region passes through a Cursor position.
 // We want to shift the cursor to the start of the region, based upon where the cursor position is.
 func (b *RopeBuffer) shiftAnchorsRemovedRange(startPos, startLine, startCol, endLine, endCol int) {
-	for _, v := range b.anchors {
-		cursorLine, cursorCol := v.GetLineCol()
-		if cursorLine >= startLine && cursorLine <= endLine {
+	for i := 0; i < len(b.anchors); i++ {
+		v := b.anchors[i]
+		if v == nil {
+			b.removeCursorAtIdx(i)
+			i--
+			continue
+		}
+
+		if v.Line >= startLine && v.Line <= endLine {
 			// If the anchor is not within the start or end columns
-			if (cursorLine == startLine && cursorCol < startCol) || (cursorLine == endLine && cursorCol > endCol) {
+			if (v.Line == startLine && v.Col < startCol) || (v.Line == endLine && v.Col > endCol) {
 				continue
 			}
-			cursorPos := b.LineColToPos(cursorLine, cursorCol)
-			v.line, v.col = b.PosToLineCol(cursorPos + (startPos - cursorPos))
+			cursorPos := b.LineColToPos(v.Line, v.Col)
+			v.Line, v.Col = b.PosToLineCol(cursorPos + (startPos - cursorPos))
 		}
 	}
 }
 
 func (b *RopeBuffer) shiftAnchors(insertLine, insertCol, runeCount int) {
-	for _, v := range b.anchors {
-		cursorLine, cursorCol := v.GetLineCol()
-		if insertLine < cursorLine || (insertLine == cursorLine && insertCol <= cursorCol) {
-			v.line, v.col = b.PosToLineCol(b.LineColToPos(cursorLine, cursorCol) + runeCount)
+	for i := 0; i < len(b.anchors); i++ {
+		v := b.anchors[i]
+		if v == nil {
+			b.removeCursorAtIdx(i)
+			i--
+			continue
+		}
+		if insertLine < v.Line || (insertLine == v.Line && insertCol <= v.Col) {
+			v.Line, v.Col = b.PosToLineCol(b.LineColToPos(v.Line, v.Col) + runeCount)
 		}
 	}
 }
@@ -383,10 +335,15 @@ func (b *RopeBuffer) RegisterCursor(cursor *Cursor) {
 func (b *RopeBuffer) UnregisterCursor(cursor *Cursor) {
 	for i, v := range b.anchors {
 		if cursor == v {
-			// Delete item at i without preserving order
-			b.anchors[i] = b.anchors[len(b.anchors)-1]
-			b.anchors[len(b.anchors)-1] = nil
-			b.anchors = b.anchors[:len(b.anchors)-1]
+			b.removeCursorAtIdx(i)
+			return
 		}
 	}
+}
+
+func (b *RopeBuffer) removeCursorAtIdx(idx int) {
+	// Delete item at idx without preserving order
+	b.anchors[idx] = b.anchors[len(b.anchors)-1]
+	b.anchors[len(b.anchors)-1] = nil
+	b.anchors = b.anchors[:len(b.anchors)-1]
 }
