@@ -53,6 +53,7 @@ func (c *Cursor) Left() {
 	} else {
 		c.Col = Max(c.Col-1, 0)
 	}
+	c.prevCol = c.Col
 }
 
 func (c *Cursor) Right() {
@@ -64,6 +65,7 @@ func (c *Cursor) Right() {
 	} else {
 		c.Line, c.Col = c.buffer.ClampLineCol(c.Line, c.Col+1)
 	}
+	c.prevCol = c.Col
 }
 
 func (c *Cursor) Up() {
