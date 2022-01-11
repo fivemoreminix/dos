@@ -1,13 +1,11 @@
-//go:build ignore
-// +build ignore
-
 package main
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/fivemoreminix/dos"
 	"github.com/gdamore/tcell/v2"
-	"os"
 )
 
 func main() {
