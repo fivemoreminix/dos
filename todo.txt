@@ -1,0 +1,30 @@
+ + turn app.Running into a context-aware api
+ + FuncCh chan func() in App for controlling default loop
+ + use a BaseWidget struct that implements Widget interface that other widget structs can embed
+ + BaseWidget contains a controlling mutex
+ + Hacker News reader app as an example (something with cond. rendering)
+ + Run inits screen
+ + Box widget has just a swappable Child (for conditional rendering)
+ + Move examples into their own packages so they can be run remotely
+ + Context interface with FocusedWidget()
+
+embed struct:
+
+struct BaseWidget:
+  mutex
+
+impl Widget for BaseWidget
+
+
+struct MyLabel:
+  BaseWidget
+  label string
+
+impl necessary Widget functions for BaseWidget, managing mutex myself
+
+
+wrap actual Widget:
+
+struct BaseWidget:
+  mutex
+  innerWidget
