@@ -35,7 +35,6 @@ func (app *App) Run(s tcell.Screen) {
 func DefaultEventLoop(app *App, s tcell.Screen) {
 	w, h := s.Size()
 	for app.Running {
-		s.Clear()
 		s.Fill(app.ClearRune, app.ClearStyle)
 
 		rect := Rect{0, 0, w, h}
@@ -49,7 +48,6 @@ func DefaultEventLoop(app *App, s tcell.Screen) {
 			if app.OnResize != nil {
 				app.OnResize(w, h)
 			}
-			s.Sync() // Redraw the entire screen
 		case *tcell.EventKey:
 			if app.OnKeyEvent != nil {
 				if app.OnKeyEvent(ev) {
